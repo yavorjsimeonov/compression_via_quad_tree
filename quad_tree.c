@@ -166,7 +166,7 @@ bool is_color_similar(struct quad_tree* node1, struct quad_tree* node2) {
 
     double p = d / sqrt(pow(255, 2) + pow(255, 2) + pow(255, 2));
 
-    return p < 0.25;
+    return p < 0.15;
 }
 
 bool sum_rgb(int *rgb, struct quad_tree* node) {
@@ -223,7 +223,7 @@ double ColourDistance(RGB e1, RGB e2)
     return sqrt((((512+rmean)*r*r)>>8) + 4*g*g + (((767-rmean)*b*b)>>8));
 }
 
-void compress_quad_tree(struct quad_tree* node) {
+void compress_quad_tree(struct quad_tree* node, int max_lvl) {
     if (node == NULL) {
         return;
     }
@@ -232,15 +232,13 @@ void compress_quad_tree(struct quad_tree* node) {
         return;
     }
 
-    compress_quad_tree(node->tl);
-    compress_quad_tree(node->tr);
-    compress_quad_tree(node->bl);
-    compress_quad_tree(node->br);
+    compress_quad_tree(node->tl, max_lvl);
+    compress_quad_tree(node->tr, max_lvl);
+    compress_quad_tree(node->bl, max_lvl);
+    compress_quad_tree(node->br, max_lvl);
 
     if (is_leaf(node->tl) && is_leaf(node->tr) && is_leaf(node->bl) && is_leaf(node->br)) {
-        if (is_color_similar(node->tl, node->tr) &&
-            is_color_similar(node->tr, node->bl) &&
-            is_color_similar(node->bl, node->br)) {
+        if ( (is_color_similar(node->tl, node->tr) && is_color_similar(node->tr, node->bl) && is_color_similar(node->bl, node->br)) || node->level > max_lvl) {
 
             node->colour = average_color(node->tl, node->tr, node->bl, node->br);
 
@@ -255,6 +253,8 @@ void compress_quad_tree(struct quad_tree* node) {
             node->br = NULL;
         }
     }
+
+
 }
 
 void decompress_quad_tree(struct quad_tree* node, int* decompressed_image, int tl_x, int tl_y, int br_x, int br_y, int width){
@@ -334,6 +334,7 @@ int main(){
     int32 height;
     int32 bytesPerPixel;
     int* decompressed_image;
+    int max_lvl = 5;
 
     read_image("d://image_to_compress.bmp", &pixels, &width, &height, &bytesPerPixel);
     printf("\n bytesPerPixel %d\n", bytesPerPixel);
@@ -343,7 +344,7 @@ int main(){
         printf("\n quadtree->tl not null\n");
     }
 
-    compress_quad_tree(quadtree);
+    compress_quad_tree(quadtree, max_lvl);
     if (quadtree->tl) {
             printf("\n quadtree->tl not null (1)\n");
     } else {
